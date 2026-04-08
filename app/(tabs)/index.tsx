@@ -1,98 +1,136 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Surface } from 'react-native-paper';
+import { useRouter } from 'expo-router';
+import { Colors } from '@/constants/colors';
+import { CustomButton } from '@/components/CustomButton';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function DashboardScreen() {
+  const router = useRouter();
 
-export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text variant="headlineMedium" style={styles.greeting}>Welcome back,</Text>
+        <Text variant="titleMedium" style={styles.subtitle}>Here is your workspace overview</Text>
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <View style={styles.statsContainer}>
+        <Surface style={styles.statCard} elevation={2}>
+          <Text variant="displaySmall" style={styles.statNumber}>12</Text>
+          <Text variant="labelMedium" style={styles.statLabel}>Active Designs</Text>
+        </Surface>
+        <Surface style={[styles.statCard, styles.statCardAccent]} elevation={2}>
+          <Text variant="displaySmall" style={[styles.statNumber, { color: Colors.primary }]}>4</Text>
+          <Text variant="labelMedium" style={[styles.statLabel, { color: Colors.primary }]}>Client Reviews</Text>
+        </Surface>
+      </View>
+
+      <View style={styles.section}>
+        <Text variant="titleLarge" style={styles.sectionTitle}>Quick Actions</Text>
+
+        <Surface style={styles.actionCard} elevation={1}>
+          <View style={styles.actionRow}>
+            <View>
+              <Text variant="titleMedium" style={styles.actionTitle}>Start New AR Scan</Text>
+              <Text variant="bodySmall" style={styles.actionSubtitle}>Visualize room templates</Text>
+            </View>
+            <CustomButton title="Scan Room" onPress={() => router.push('/ar-preview' as any)} variant="gold" />
+          </View>
+        </Surface>
+
+        <Surface style={styles.actionCard} elevation={1}>
+          <View style={styles.actionRow}>
+            <View>
+              <Text variant="titleMedium" style={styles.actionTitle}>Calculate Budget</Text>
+              <Text variant="bodySmall" style={styles.actionSubtitle}>Estimate material splits</Text>
+            </View>
+            <CustomButton title="Open Tool" onPress={() => router.push('/(tabs)/budget')} variant="solid" />
+          </View>
+        </Surface>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+  },
+  header: {
+    padding: 24,
+    paddingTop: 32,
+    paddingBottom: 16,
+  },
+  greeting: {
+    color: Colors.textMain,
+    fontFamily: 'PlayfairDisplay-Regular',
+  },
+  subtitle: {
+    color: Colors.textMuted,
+    marginTop: 4,
+    fontFamily: 'Lato-Regular',
+  },
+  statsContainer: {
     flexDirection: 'row',
+    padding: 16,
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.card,
+    padding: 20,
+    marginHorizontal: 8,
+    borderRadius: 12,
     alignItems: 'center',
-    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  statCardAccent: {
+    backgroundColor: Colors.accentGoldHover,
+    borderColor: Colors.accentGoldHover,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  statNumber: {
+    color: Colors.accentGoldHover,
+    fontFamily: 'PlayfairDisplay-Regular',
+    marginBottom: 4,
   },
+  statLabel: {
+    color: Colors.textMuted,
+    fontFamily: 'Lato-Regular',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  section: {
+    padding: 24,
+    paddingBottom: 80,
+  },
+  sectionTitle: {
+    color: Colors.textMain,
+    fontFamily: 'PlayfairDisplay-Regular',
+    marginBottom: 16,
+  },
+  actionCard: {
+    backgroundColor: Colors.card,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  actionTitle: {
+    color: Colors.textMain,
+    fontFamily: 'Lato-Bold',
+    marginBottom: 4,
+  },
+  actionSubtitle: {
+    color: Colors.textMuted,
+    fontFamily: 'Lato-Regular',
+  }
 });

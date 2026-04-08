@@ -1,53 +1,45 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+import { MD3DarkTheme, configureFonts } from 'react-native-paper';
+import { Colors } from './colors';
 
-import { Platform } from 'react-native';
+export { Colors } from './colors';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
-export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+const fontConfig = {
+  displayMedium: {
+    fontFamily: 'PlayfairDisplay-Regular',
+    letterSpacing: 0.5,
   },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+  titleLarge: {
+    fontFamily: 'PlayfairDisplay-Regular',
+    letterSpacing: 0.5,
+  },
+  bodyLarge: {
+    fontFamily: 'Lato-Regular',
+    letterSpacing: 0,
+  },
+  bodyMedium: {
+    fontFamily: 'Lato-Regular',
+    letterSpacing: 0.25,
+  },
+  labelLarge: {
+    fontFamily: 'Lato-Bold',
+    letterSpacing: 1,
   },
 };
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+export const theme = {
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: Colors.accentGold,
+    background: Colors.primary,
+    surface: Colors.card,
+    surfaceVariant: Colors.secondary,
+    onSurface: Colors.textMain,
+    onSurfaceVariant: Colors.textMuted,
+    outline: Colors.borderSubtle,
+    error: Colors.error,
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});
+  fonts: configureFonts({ config: fontConfig }),
+  roundness: 8,
+};
+

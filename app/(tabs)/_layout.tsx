@@ -1,35 +1,75 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Colors } from '@/constants/colors';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: Colors.secondary,
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.borderSubtle,
+        },
+        headerTintColor: Colors.textMain,
+        headerTitleStyle: {
+          fontFamily: 'PlayfairDisplay-Regular',
+          fontSize: 20,
+        },
+        tabBarStyle: {
+          backgroundColor: Colors.secondary,
+          borderTopWidth: 1,
+          borderTopColor: Colors.borderSubtle,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: Colors.accentGold,
+        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarLabelStyle: {
+          fontFamily: 'Lato-Regular',
+          fontSize: 10,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Dashboard',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="view-dashboard" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="portfolio"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Portfolio',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="image-multiple" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="furniture"
+        options={{
+          title: 'Furniture',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="sofa" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="budget"
+        options={{
+          title: 'Budget',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="calculator" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>
   );
 }
+
