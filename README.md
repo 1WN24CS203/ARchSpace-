@@ -1,47 +1,81 @@
-<div align="center">
+# ARchSpace – Interior Design Workbench
 
-# ARchSpace
+## Overview
 
-![Unity](https://img.shields.io/badge/unity-%23000000.svg?style=for-the-badge&logo=unity&logoColor=white)![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+ARchSpace is a mobile-based augmented reality (AR) interior design workbench built using Unity (AR Foundation). The application allows users to design interior spaces in real-time by placing structural elements, materials, furniture, and lighting using AR.
 
-</div>
+The goal is to simulate a professional interior design workflow on a smartphone or tablet.
 
-## Project Overview
-ARchSpace is an Augmented Reality app to solve the shopping problem of customers, allowing them to try furniture in their home environment before actually purchasing it.
+## Core Concept
+
+The system combines:
+
+- Real-world environment detection (AR)
+- Interactive object placement
+- Category-based design system
+
+Users can build a room layout by selecting elements and placing them in physical space.
+
+## Technology Stack
+
+- Unity Engine (2022.x)
+- AR Foundation (cross-platform AR)
+- ARCore (Android support)
+- C# (scripting)
+
+## Functional Modules
+
+### 1. AR Placement Engine
+
+- Uses AR Plane Manager for surface detection
+- Uses AR Raycast Manager for touch-based placement
+- Instantiates selected prefabs on detected planes
+
+### 2. Prefab System
+
+Objects are organized as prefabs into categories:
+
+- Structure: Walls, Floors
+- Materials: Wood tiles, Marble surfaces
+- Furniture: Chairs, Tables, Sofas
+- Lighting: Lamps (with light components)
+
+### 3. Category-Based Selection System
+
+UI allows switching between categories:
+
+- Structure
+- Material
+- Furniture
+- Lighting
+
+Each category displays corresponding items. Selecting an item updates the active object for placement.
+
+### 4. Object Placement Workflow
+
+1. User selects a category
+2. User selects an item (prefab)
+3. User taps on detected surface
+4. Object is instantiated at that position
+5. Multiple objects can be placed to build a scene
 
 ## Screenshots
+
 <div align="center">
 <img src="./screenshots/home.png" alt="img" width="250"/>
-<img src="./screenshots/menu.png " alt="img" width="250"/>
+<img src="./screenshots/menu.png" alt="img" width="250"/>
 <img src="./screenshots/start.png" alt="img" width="250"/>
 <img src="./screenshots/placement.png" alt="img" width="250"/>
 <img src="./screenshots/about.png" alt="img" width="250"/>
 <img src="./screenshots/contact.png" alt="img" width="250"/>
 </div>
 
-## Features
-List the main features of the application. For example:
-- **AR Object Placement**: Place 3D objects in the real world using AR.
-- **Interactive Elements**: Tap on objects to interact with them.
-- **Customizable Scenes**: Users can change scenes or environments.
+## Download
 
-## Setup Instructions
-### Prerequisites
-- Unity version [specific version]
-- [Any specific SDKs or plugins], e.g., AR Foundation, ARCore/ARKit
+- Android APK: `ARchSpace.apk`
 
-### Installation
-1. Clone the repository:
-   ```bash
-  git clone https://github.com/1WN24CS203/ARchSpace-
+## Repository
 
-2. Open the project in Unity:
-
-  - Open Unity Hub.
-  - Click on "Open" and navigate to the cloned repository folder.
-
-3. Install required packages:
-
-  - Go to Window -> Package Manager.
-  - Ensure AR Foundation and other necessary packages are installed.
-  - Set up platform-specific configurations:
+```bash
+git clone https://github.com/1WN24CS203/ARchSpace-
+```
