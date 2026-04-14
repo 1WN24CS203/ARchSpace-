@@ -1,13 +1,13 @@
 <div align="center">
 
-# AR-FURNITURE
+# ARchSpace
 
 ![Unity](https://img.shields.io/badge/unity-%23000000.svg?style=for-the-badge&logo=unity&logoColor=white)![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 
 </div>
 
 ## Project Overview
-AR Furniture is an Augmented Reality app  to solve the shopping problem of customer, which allows them to try furniture in their home environment before actually purchasing it
+ARchSpace is an Augmented Reality app to solve the shopping problem of customers, allowing them to try furniture in their home environment before actually purchasing it.
 
 ## Screenshots
 <div align="center">
@@ -33,7 +33,7 @@ List the main features of the application. For example:
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/shrinivask007/AR_Furniture_App.git
+  git clone https://github.com/1WN24CS203/ARchSpace-
 
 2. Open the project in Unity:
 
