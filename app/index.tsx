@@ -6,12 +6,51 @@ import { Colors } from '@/constants/colors';
 import { CustomButton } from '@/components/CustomButton';
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 
+// Resolve localhost based on emulator/platform for demo
+const getApiBaseUrl = () => {
+    if (Platform.OS === 'android') {
+        return 'http://10.0.2.2:3000'; // Android emulator localhost
+    }
+    return 'http://localhost:3000'; // Web, iOS Simulator
+};
+
 export default function LoginScreen() {
     const router = useRouter();
-    const [authMode, setAuthMode] = useState<'email' | 'otp'>('email');
+    const [authMode, setAuthMode] = useState<'password' | 'email' | 'otp'>('password');
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const handlePasswordLogin = async () => {
+        if (!email || !password) {
+            alert('Please enter both email and password.');
+            return;
+        }
+        setLoading(true);
+
+        try {
+            const res = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+                alert(data.error || 'Authentication failed');
+                setLoading(false);
+                return;
+            }
+            
+            setLoading(false);
+            router.replace('/(tabs)');
+        } catch (error) {
+            setLoading(false);
+            alert('Cannot connect to the server database. Ensure the backend is running.');
+            console.error(error);
+        }
+    };
 
     const handleSendOTP = () => {
         if (!email.includes('@')) {
@@ -19,11 +58,9 @@ export default function LoginScreen() {
             return;
         }
         setLoading(true);
-        // Simulate sending OTP via Email (Gmail)
         setTimeout(() => {
             setLoading(false);
             setAuthMode('otp');
-            // For Demo Purposes: Show a toast/alert or auto populate
             alert('Verification code sent to your email. (Use 1234 for demo)');
         }, 1500);
     };
@@ -42,7 +79,6 @@ export default function LoginScreen() {
 
     const handleGoogleLogin = () => {
         setLoading(true);
-        // Simulate Google OAuth Login
         setTimeout(() => {
             setLoading(false);
             router.replace('/(tabs)');
@@ -63,10 +99,53 @@ export default function LoginScreen() {
                     </View>
 
                     <View style={styles.formCard}>
-                        {authMode === 'email' ? (
+                        {authMode === 'password' && (
                             <View style={styles.formMode}>
-                                <Text style={styles.formTitle}>Sign In</Text>
-                                <Text style={styles.formDescription}>Enter your email to receive a one-time passcode</Text>
+                                <Text style={styles.formTitle}>Secure Portal</Text>
+                                <Text style={styles.formDescription}>Enter your credentials mapped to MongoDB</Text>
+                                
+                                <TextInput
+                                    label="Account Email"
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    autoCapitalize="none"
+                                    keyboardType="email-address"
+                                    style={styles.input}
+                                    textColor={Colors.textMain}
+                                    activeUnderlineColor={Colors.accentGold}
+                                    theme={{ colors: { onSurfaceVariant: Colors.textMuted } }}
+                                    left={<TextInput.Icon icon="account-outline" color={Colors.textMuted} />}
+                                />
+
+                                <TextInput
+                                    label="Database Password"
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry
+                                    style={styles.input}
+                                    textColor={Colors.textMain}
+                                    activeUnderlineColor={Colors.accentGold}
+                                    theme={{ colors: { onSurfaceVariant: Colors.textMuted } }}
+                                    left={<TextInput.Icon icon="lock-outline" color={Colors.textMuted} />}
+                                />
+
+                                <CustomButton
+                                    title={loading ? "Authenticating..." : "System Login"}
+                                    onPress={handlePasswordLogin}
+                                    variant="solid"
+                                />
+
+                                <View style={styles.resendContainer}>
+                                    <Text style={styles.footerText}>Or access via </Text>
+                                    <Text style={styles.signupText} onPress={() => setAuthMode('email')}>OTP Passcode</Text>
+                                </View>
+                            </View>
+                        )}
+
+                        {authMode === 'email' && (
+                            <View style={styles.formMode}>
+                                <Text style={styles.formTitle}>OTP Login</Text>
+                                <Text style={styles.formDescription}>Enter your email to receive a temporary passcode</Text>
                                 
                                 <TextInput
                                     label="Email Address"
@@ -99,8 +178,15 @@ export default function LoginScreen() {
                                     variant="outline"
                                     icon={() => <AntDesign name="google" size={20} color={Colors.textMain} style={{marginRight: 8}} />}
                                 />
+                                
+                                <View style={styles.resendContainer}>
+                                    <Text style={styles.footerText}>Prefer standard login? </Text>
+                                    <Text style={styles.signupText} onPress={() => setAuthMode('password')}>Use Password</Text>
+                                </View>
                             </View>
-                        ) : (
+                        )}
+
+                        {authMode === 'otp' && (
                             <View style={styles.formMode}>
                                 <Text style={styles.formTitle}>Verify Email</Text>
                                 <Text style={styles.formDescription}>Enter the 4-digit code sent to {email}</Text>
@@ -116,7 +202,7 @@ export default function LoginScreen() {
                                     textColor={Colors.textMain}
                                     activeUnderlineColor={Colors.accentGold}
                                     theme={{ colors: { onSurfaceVariant: Colors.textMuted } }}
-                                    left={<TextInput.Icon icon="lock-outline" color={Colors.textMuted} />}
+                                    left={<TextInput.Icon icon="shield-check-outline" color={Colors.textMuted} />}
                                 />
 
                                 <CustomButton
@@ -133,12 +219,10 @@ export default function LoginScreen() {
                         )}
                     </View>
 
-                    {authMode === 'email' && (
-                        <View style={styles.footer}>
-                            <Text style={styles.footerText}>Need an account? </Text>
-                            <Text style={styles.signupText} onPress={() => router.push('/signup')}>Create one</Text>
-                        </View>
-                    )}
+                    <View style={styles.footer}>
+                        <Text style={styles.footerText}>Need an account? </Text>
+                        <Text style={styles.signupText} onPress={() => router.push('/signup')}>Register with Company Code</Text>
+                    </View>
                 </ScrollView>
             </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
@@ -146,35 +230,12 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.primary,
-    },
-    content: {
-        flexGrow: 1,
-        justifyContent: 'center',
-        padding: 24,
-    },
-    header: {
-        marginBottom: 40,
-        alignItems: 'center',
-    },
-    logoIcon: {
-        marginBottom: 16,
-    },
-    title: {
-        color: Colors.textMain,
-        fontFamily: 'PlayfairDisplay-Regular',
-        marginBottom: 8,
-        letterSpacing: 1,
-    },
-    subtitle: {
-        color: Colors.textMuted,
-        fontFamily: 'Lato-Regular',
-        letterSpacing: 3,
-        textTransform: 'uppercase',
-        fontSize: 11,
-    },
+    container: { flex: 1, backgroundColor: Colors.primary },
+    content: { flexGrow: 1, justifyContent: 'center', padding: 24 },
+    header: { marginBottom: 40, alignItems: 'center' },
+    logoIcon: { marginBottom: 16 },
+    title: { color: Colors.textMain, fontFamily: 'PlayfairDisplay-Regular', marginBottom: 8, letterSpacing: 1 },
+    subtitle: { color: Colors.textMuted, fontFamily: 'Lato-Regular', letterSpacing: 3, textTransform: 'uppercase', fontSize: 11 },
     formCard: {
         backgroundColor: Colors.secondary,
         borderRadius: 16,
@@ -187,22 +248,9 @@ const styles = StyleSheet.create({
         shadowRadius: 20,
         elevation: 10,
     },
-    formMode: {
-        // Wrapper for animated transitions if needed
-    },
-    formTitle: {
-        color: Colors.textMain,
-        fontFamily: 'PlayfairDisplay-Regular',
-        fontSize: 24,
-        marginBottom: 8,
-    },
-    formDescription: {
-        color: Colors.textMuted,
-        fontFamily: 'Lato-Regular',
-        fontSize: 14,
-        marginBottom: 24,
-        lineHeight: 20,
-    },
+    formMode: {},
+    formTitle: { color: Colors.textMain, fontFamily: 'PlayfairDisplay-Regular', fontSize: 24, marginBottom: 8 },
+    formDescription: { color: Colors.textMuted, fontFamily: 'Lato-Regular', fontSize: 14, marginBottom: 24, lineHeight: 20 },
     input: {
         backgroundColor: Colors.primary,
         marginBottom: 20,
@@ -210,46 +258,12 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 8,
         fontSize: 16,
     },
-    otpInput: {
-        textAlign: 'center',
-        letterSpacing: 8,
-    },
-    dividerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 24,
-    },
-    dividerLine: {
-        flex: 1,
-        height: 1,
-        backgroundColor: Colors.borderSubtle,
-    },
-    dividerText: {
-        color: Colors.textMuted,
-        paddingHorizontal: 16,
-        fontFamily: 'Lato-Regular',
-        fontSize: 12,
-        letterSpacing: 1,
-    },
-    resendContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginTop: 20,
-    },
-    footer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 32,
-    },
-    footerText: {
-        color: Colors.textMuted,
-        fontSize: 14,
-        fontFamily: 'Lato-Regular',
-    },
-    signupText: {
-        color: Colors.accentGold,
-        fontSize: 14,
-        fontFamily: 'Lato-Bold',
-    }
+    otpInput: { textAlign: 'center', letterSpacing: 8 },
+    dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: Colors.borderSubtle },
+    dividerText: { color: Colors.textMuted, paddingHorizontal: 16, fontFamily: 'Lato-Regular', fontSize: 12, letterSpacing: 1 },
+    resendContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
+    footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 32 },
+    footerText: { color: Colors.textMuted, fontSize: 14, fontFamily: 'Lato-Regular' },
+    signupText: { color: Colors.accentGold, fontSize: 14, fontFamily: 'Lato-Bold' }
 });

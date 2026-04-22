@@ -4,6 +4,15 @@ import { Text, TextInput } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { CustomButton } from '@/components/CustomButton';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+// Resolve localhost based on emulator/platform for demo
+const getApiBaseUrl = () => {
+    if (Platform.OS === 'android') {
+        return 'http://10.0.2.2:3000'; // Android emulator localhost
+    }
+    return 'http://localhost:3000'; // Web, iOS Simulator
+};
 
 export default function SignupScreen() {
     const router = useRouter();
@@ -12,29 +21,39 @@ export default function SignupScreen() {
     const [password, setPassword] = useState('');
     const [workspaceKey, setWorkspaceKey] = useState('');
     const [loading, setLoading] = useState(false);
-
     const [errorMsg, setErrorMsg] = useState('');
 
-    // ---------- CHANGE WORKSPACE KEY HERE ----------
-    const VALID_WORKSPACE_KEY = 'BAVI-M2026';
-    // -----------------------------------------------
-
-    const handleSignup = () => {
+    const handleSignup = async () => {
         setErrorMsg('');
+        
+        if (!email || !password || !workspaceKey) {
+            setErrorMsg('Email, Password, and Workspace Key are required.');
+            return;
+        }
+
         setLoading(true);
 
-        // Simulate signup network request
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            const res = await fetch(`${getApiBaseUrl()}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, companyCode: workspaceKey.toUpperCase() })
+            });
+            const data = await res.json();
 
-            if (workspaceKey.toUpperCase() !== VALID_WORKSPACE_KEY) {
-                setErrorMsg('Invalid Workspace Invite Key. Please check with your admin.');
+            if (!res.ok) {
+                setErrorMsg(data.error || 'Failed to create account.');
+                setLoading(false);
                 return;
             }
 
+            setLoading(false);
             // Replace the entire navigation stack so the user can't go back to auth flow
             router.replace('/(tabs)');
-        }, 1200);
+        } catch (error) {
+            setLoading(false);
+            setErrorMsg('Cannot connect to the backend server. Is it running?');
+        }
     };
 
     return (
@@ -45,11 +64,12 @@ export default function SignupScreen() {
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <View style={styles.header}>
+                        <MaterialCommunityIcons name="cube-scan" size={48} color={Colors.accentGold} style={styles.logoIcon} />
                         <Text variant="displaySmall" style={styles.title}>Join ARchSpace</Text>
                         <Text variant="titleMedium" style={styles.subtitle}>Designer Registration</Text>
                     </View>
 
-                    <View style={styles.form}>
+                    <View style={styles.formCard}>
                         <TextInput
                             label="Full Name"
                             value={name}
@@ -59,6 +79,7 @@ export default function SignupScreen() {
                             textColor={Colors.textMain}
                             activeUnderlineColor={Colors.accentGold}
                             theme={{ colors: { onSurfaceVariant: Colors.textMuted } }}
+                            left={<TextInput.Icon icon="account" color={Colors.textMuted} />}
                         />
 
                         <TextInput
@@ -71,10 +92,11 @@ export default function SignupScreen() {
                             textColor={Colors.textMain}
                             activeUnderlineColor={Colors.accentGold}
                             theme={{ colors: { onSurfaceVariant: Colors.textMuted } }}
+                            left={<TextInput.Icon icon="email" color={Colors.textMuted} />}
                         />
 
                         <TextInput
-                            label="Password"
+                            label="Set Password"
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
@@ -82,24 +104,26 @@ export default function SignupScreen() {
                             textColor={Colors.textMain}
                             activeUnderlineColor={Colors.accentGold}
                             theme={{ colors: { onSurfaceVariant: Colors.textMuted } }}
+                            left={<TextInput.Icon icon="lock" color={Colors.textMuted} />}
                         />
 
                         <TextInput
-                            label="Workspace Invite Key"
+                            label="Company Invite Code"
                             value={workspaceKey}
                             onChangeText={setWorkspaceKey}
                             autoCapitalize="characters"
-                            placeholder="e.g. STUDIO-8B4K"
+                            placeholder="e.g. ARCH2026"
                             placeholderTextColor={Colors.borderSubtle}
                             style={[styles.input, styles.keyInput]}
                             textColor={Colors.accentGoldHover}
                             activeUnderlineColor={Colors.accentGoldHover}
                             theme={{ colors: { onSurfaceVariant: Colors.accentGold } }}
+                            left={<TextInput.Icon icon="shield-key" color={Colors.accentGold} />}
                         />
 
                         <View style={styles.buttonContainer}>
                             <CustomButton
-                                title={loading ? "Creating Account..." : "Create Account"}
+                                title={loading ? "Creating MongoDB Record..." : "Create Account"}
                                 onPress={handleSignup}
                                 variant="solid"
                                 style={styles.signupButton}
@@ -108,13 +132,12 @@ export default function SignupScreen() {
                             <CustomButton
                                 title="Back to Login"
                                 onPress={() => router.back()}
-                                variant="gold"
+                                variant="outline"
                             />
                         </View>
 
                         {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
                     </View>
-
                 </ScrollView>
             </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
@@ -129,14 +152,17 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         justifyContent: 'center',
-        padding: 32,
+        padding: 24,
     },
     header: {
-        marginBottom: 40,
+        marginBottom: 32,
         alignItems: 'center',
     },
+    logoIcon: {
+        marginBottom: 16,
+    },
     title: {
-        color: Colors.accentGoldHover,
+        color: Colors.textMain,
         fontFamily: 'PlayfairDisplay-Regular',
         marginBottom: 8,
     },
@@ -147,29 +173,39 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         fontSize: 12,
     },
-    form: {
-        marginBottom: 24,
+    formCard: {
+        backgroundColor: Colors.secondary,
+        borderRadius: 16,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: Colors.borderSubtle,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 10,
     },
     input: {
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: Colors.primary,
         marginBottom: 16,
-        borderTopLeftRadius: 4,
-        borderTopRightRadius: 4,
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
     },
     keyInput: {
         backgroundColor: 'rgba(212, 175, 55, 0.05)',
         borderWidth: 1,
         borderColor: 'rgba(212, 175, 55, 0.2)',
-        marginBottom: 32,
+        marginBottom: 24,
     },
     buttonContainer: {
         marginTop: 8,
+        gap: 16,
     },
     signupButton: {
-        marginBottom: 16,
+        // Additional styling if needed
     },
     errorText: {
-        color: '#FF4C4C', // A red error color that works on dark mode
+        color: '#FF4C4C',
         textAlign: 'center',
         marginTop: 16,
         fontFamily: 'Lato-Regular',
