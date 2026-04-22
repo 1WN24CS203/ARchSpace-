@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View, Animated, Easing } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Colors } from '@/constants/colors';
+import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 
 type UnityMsg = {
     type?: 'budget' | 'category' | 'item' | 'items';
@@ -69,8 +70,17 @@ export default function ARPreviewScreen() {
         [items]
     );
 
+    // Animation values
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
     useEffect(() => {
-        // Run mock data setup on web as well
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+            easing: Easing.out(Easing.ease)
+        }).start();
+
         if (UI_DEMO_ONLY || !UnityView || Platform.OS === 'web') {
             const demo = DEMO_ITEMS[activeCategory as (typeof CATEGORIES)[number]] ?? [];
             setItems(demo);
@@ -82,7 +92,6 @@ export default function ARPreviewScreen() {
         const ref = unityRef.current;
         if (!ref) return;
 
-        // Ensure Unity disables any legacy UI and acts as AR engine only.
         ref.postMessage('RNBridge', 'EnableRNMode', '');
         ref.postMessage('RNBridge', 'RequestState', '');
         ref.postMessage('RNBridge', 'RequestItemsForCategory', activeCategory);
@@ -130,11 +139,6 @@ export default function ARPreviewScreen() {
         }
     };
 
-    // Allow rendering on web for UI review
-    // if (Platform.OS === 'web') {
-    //     return <View style={styles.container} />;
-    // }
-
     return (
         <View style={styles.container}>
             {UnityView ? (
@@ -145,23 +149,27 @@ export default function ARPreviewScreen() {
                     onUnityMessage={onUnityMessage}
                 />
             ) : (
-                <View style={styles.unity} />
+                <View style={styles.unityPlaceholder}>
+                    <MaterialCommunityIcons name="augmented-reality" size={64} color={Colors.textMuted} opacity={0.5} />
+                    <Text style={styles.placeholderText}>AR Engine Offline (Demo Mode)</Text>
+                </View>
             )}
 
             {/* top HUD */}
             <View style={styles.topHud} pointerEvents="box-none">
                 <Pressable style={styles.iconBtn} onPress={() => router.back()}>
-                    <Text style={styles.iconBtnText}>×</Text>
+                    <Feather name="chevron-left" size={24} color={Colors.textMain} />
                 </Pressable>
 
                 <View style={styles.budgetPill}>
-                    <Text style={styles.budgetText}>Budget</Text>
-                    <Text style={styles.budgetValue}>{budget.toFixed(0)}</Text>
+                    <Text style={styles.budgetText}>Est. Cost</Text>
+                    <Text style={styles.budgetValue}>${budget.toFixed(0)}</Text>
                 </View>
             </View>
 
             {/* bottom sheet */}
-            <View style={styles.sheet}>
+            <Animated.View style={[styles.sheet, { opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0,1], outputRange: [50, 0] }) }] }]}>
+                <View style={styles.sheetHandle} />
                 <View style={styles.sheetHeader}>
                     <Text style={styles.sheetTitle}>{activeCategory.toUpperCase()}</Text>
                     <Pressable
@@ -174,11 +182,11 @@ export default function ARPreviewScreen() {
                             unityRef.current?.postMessage('RNBridge', 'Deselect', '');
                         }}
                     >
-                        <Text style={styles.sheetCloseText}>×</Text>
+                        <Feather name="x" size={18} color={Colors.textMain} />
                     </Pressable>
                 </View>
 
-                <View style={styles.categoryRow}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
                     {CATEGORIES.map((c) => (
                         <Pressable
                             key={c}
@@ -190,7 +198,7 @@ export default function ARPreviewScreen() {
                             </Text>
                         </Pressable>
                     ))}
-                </View>
+                </ScrollView>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatchRow}>
                     {swatches.map((sw) => (
@@ -205,13 +213,19 @@ export default function ARPreviewScreen() {
                                 }
                                 unityRef.current?.postMessage('RNBridge', 'SetItem', sw.name);
                             }}
-                        />
+                        >
+                            <View style={[styles.swatchInner, activeItem === sw.name ? styles.swatchInnerActive : null]}>
+                                <Text style={styles.swatchInitials}>{sw.name.slice(0,2).toUpperCase()}</Text>
+                            </View>
+                            <Text style={styles.swatchName} numberOfLines={1}>{sw.name}</Text>
+                            <Text style={styles.swatchPrice}>${sw.price}</Text>
+                        </Pressable>
                     ))}
                 </ScrollView>
 
                 <View style={styles.actionsRow}>
                     <Pressable
-                        style={styles.smallAction}
+                        style={styles.sideAction}
                         onPress={() => {
                             if (UI_DEMO_ONLY || !UnityView) {
                                 setBudget((b) => b + 500);
@@ -220,22 +234,21 @@ export default function ARPreviewScreen() {
                             unityRef.current?.postMessage('RNBridge', 'Undo', '');
                         }}
                     >
-                        <Text style={styles.smallActionText}>Undo</Text>
+                        <Feather name="rotate-ccw" size={20} color={Colors.textMain} />
                     </Pressable>
 
                     <Pressable
                         style={styles.primaryAction}
                         onPress={() => {
-                            // Placement is tap-to-place inside Unity. Primary button acts like “confirm / reselect”.
                             if (UI_DEMO_ONLY || !UnityView) return;
                             unityRef.current?.postMessage('RNBridge', 'Ping', 'PrimaryAction');
                         }}
                     >
-                        <Text style={styles.primaryActionText}>●</Text>
+                        <MaterialCommunityIcons name="plus" size={32} color="#111" />
                     </Pressable>
 
                     <Pressable
-                        style={styles.smallAction}
+                        style={styles.sideAction}
                         onPress={() => {
                             if (UI_DEMO_ONLY || !UnityView) {
                                 setBudget(45000);
@@ -244,10 +257,10 @@ export default function ARPreviewScreen() {
                             unityRef.current?.postMessage('RNBridge', 'Clear', '');
                         }}
                     >
-                        <Text style={styles.smallActionText}>Clear</Text>
+                        <Feather name="trash-2" size={20} color={Colors.textMain} />
                     </Pressable>
                 </View>
-            </View>
+            </Animated.View>
         </View>
     );
 }
@@ -260,45 +273,68 @@ const styles = StyleSheet.create({
     unity: {
         flex: 1,
     },
+    unityPlaceholder: {
+        flex: 1,
+        backgroundColor: '#1a1a1a',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    placeholderText: {
+        color: Colors.textMuted,
+        fontFamily: 'Lato-Regular',
+        marginTop: 12,
+        fontSize: 16,
+    },
 
     topHud: {
         position: 'absolute',
-        left: 16,
-        right: 16,
-        top: 48,
+        left: 20,
+        right: 20,
+        top: 60,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
     iconBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(0,0,0,0.45)',
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(20, 20, 20, 0.8)',
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    iconBtnText: {
-        color: Colors.textMain,
-        fontSize: 22,
-        lineHeight: 22,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
     },
     budgetPill: {
         flexDirection: 'row',
-        gap: 10,
-        paddingHorizontal: 14,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(0,0,0,0.45)',
+        gap: 8,
+        paddingHorizontal: 20,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(20, 20, 20, 0.8)',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
     },
     budgetText: {
         color: Colors.textMuted,
-        fontSize: 13,
+        fontSize: 12,
+        fontFamily: 'Lato-Bold',
+        letterSpacing: 0.5,
     },
     budgetValue: {
-        color: Colors.textMain,
-        fontSize: 15,
+        color: Colors.accentGoldHover,
+        fontSize: 16,
+        fontFamily: 'PlayfairDisplay-Regular',
+        fontWeight: '700',
     },
 
     sheet: {
@@ -306,105 +342,154 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        paddingTop: 12,
-        paddingBottom: 18,
-        paddingHorizontal: 16,
-        backgroundColor: 'rgba(20,20,20,0.92)',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+        backgroundColor: 'rgba(15, 15, 15, 0.95)',
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 24,
+    },
+    sheetHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginTop: 12,
+        marginBottom: 16,
     },
     sheetHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        paddingHorizontal: 24,
+        marginBottom: 12,
     },
     sheetTitle: {
         color: Colors.textMain,
-        fontSize: 13,
-        letterSpacing: 1.2,
+        fontSize: 18,
+        fontFamily: 'PlayfairDisplay-Regular',
+        letterSpacing: 1,
     },
     sheetClose: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    sheetCloseText: {
-        color: Colors.textMain,
-        fontSize: 18,
-        lineHeight: 18,
-    },
 
     categoryRow: {
-        flexDirection: 'row',
-        marginTop: 10,
-        gap: 10,
+        paddingHorizontal: 20,
+        marginBottom: 12,
+        height: 50,
+        alignItems: 'center',
+        gap: 12,
     },
     categoryChip: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1,
+        borderColor: 'transparent',
     },
     categoryChipActive: {
-        backgroundColor: 'rgba(212, 175, 55, 0.18)',
-        borderWidth: 1,
-        borderColor: 'rgba(212, 175, 55, 0.45)',
+        backgroundColor: 'rgba(212, 175, 55, 0.1)',
+        borderColor: 'rgba(212, 175, 55, 0.3)',
     },
     categoryChipText: {
         color: Colors.textMuted,
-        fontSize: 12,
+        fontSize: 14,
+        fontFamily: 'Lato-Regular',
     },
     categoryChipTextActive: {
-        color: Colors.textMain,
+        color: Colors.accentGoldHover,
+        fontFamily: 'Lato-Bold',
     },
 
     swatchRow: {
-        paddingVertical: 14,
-        gap: 10,
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        gap: 16,
+        marginBottom: 20,
     },
     swatch: {
-        width: 42,
-        height: 42,
-        borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.14)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.12)',
+        width: 80,
+        alignItems: 'center',
     },
-    swatchActive: {
-        borderColor: 'rgba(248, 213, 104, 0.95)',
+    swatchInner: {
+        width: 72,
+        height: 72,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.03)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+    },
+    swatchInnerActive: {
+        borderColor: Colors.accentGoldHover,
+        backgroundColor: 'rgba(212, 175, 55, 0.08)',
+        shadowColor: Colors.accentGoldHover,
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+    },
+    swatchInitials: {
+        color: Colors.textMuted,
+        fontFamily: 'PlayfairDisplay-Regular',
+        fontSize: 24,
+        opacity: 0.8,
+    },
+    swatchName: {
+        color: Colors.textMain,
+        fontSize: 12,
+        fontFamily: 'Lato-Regular',
+        textAlign: 'center',
+        marginBottom: 2,
+    },
+    swatchPrice: {
+        color: Colors.textMuted,
+        fontSize: 11,
+        fontFamily: 'Lato-Regular',
     },
 
     actionsRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center',
+        paddingHorizontal: 24,
+        gap: 32,
     },
-    smallAction: {
-        width: 72,
-        height: 44,
-        borderRadius: 22,
+    sideAction: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
         backgroundColor: 'rgba(255,255,255,0.06)',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    smallActionText: {
-        color: Colors.textMain,
-        fontSize: 12,
-    },
     primaryAction: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: 'rgba(248, 213, 104, 0.92)',
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: Colors.accentGold,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    primaryActionText: {
-        color: '#111',
-        fontSize: 18,
-        marginTop: -2,
+        shadowColor: Colors.accentGold,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
     },
 });
