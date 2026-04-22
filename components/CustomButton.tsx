@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, Text, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, TouchableOpacity, Text, ViewStyle, TextStyle, View } from 'react-native';
 import { Colors } from '@/constants/colors';
 
 interface CustomButtonProps {
@@ -7,7 +7,8 @@ interface CustomButtonProps {
     onPress: () => void;
     style?: ViewStyle | ViewStyle[];
     textStyle?: TextStyle | TextStyle[];
-    variant?: 'gold' | 'solid';
+    variant?: 'gold' | 'solid' | 'outline';
+    icon?: () => React.ReactNode;
 }
 
 export const CustomButton: React.FC<CustomButtonProps> = ({
@@ -15,29 +16,39 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
     onPress,
     style,
     textStyle,
-    variant = 'gold'
+    variant = 'gold',
+    icon
 }) => {
     const isSolid = variant === 'solid';
+    const isOutline = variant === 'outline';
+
+    const renderIcon = () => {
+        if (!icon) return null;
+        return icon();
+    };
 
     return (
         <TouchableOpacity
             style={[
                 styles.button,
-                isSolid ? styles.solidButton : styles.ghostButton,
+                isSolid ? styles.solidButton : isOutline ? styles.outlineButton : styles.ghostButton,
                 style
             ]}
             onPress={onPress}
             activeOpacity={0.7}
         >
-            <Text
-                style={[
-                    styles.text,
-                    isSolid ? styles.solidText : styles.ghostText,
-                    textStyle
-                ]}
-            >
-                {title}
-            </Text>
+            <View style={styles.internalContainer}>
+                {renderIcon()}
+                <Text
+                    style={[
+                        styles.text,
+                        isSolid ? styles.solidText : isOutline ? styles.outlineText : styles.ghostText,
+                        textStyle
+                    ]}
+                >
+                    {title}
+                </Text>
+            </View>
         </TouchableOpacity>
     );
 };
@@ -50,6 +61,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    internalContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     ghostButton: {
         backgroundColor: 'transparent',
         borderWidth: 1,
@@ -57,6 +73,12 @@ const styles = StyleSheet.create({
     },
     solidButton: {
         backgroundColor: Colors.accentGold,
+    },
+    outlineButton: {
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: Colors.borderSubtle,
+        borderRadius: 8,
     },
     text: {
         fontFamily: 'Lato-Bold',
@@ -69,5 +91,8 @@ const styles = StyleSheet.create({
     },
     solidText: {
         color: Colors.primary, // Black text on gold background
+    },
+    outlineText: {
+        color: Colors.textMain,
     },
 });

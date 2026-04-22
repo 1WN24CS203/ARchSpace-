@@ -204,7 +204,7 @@ export default function ARPreviewScreen() {
                     {swatches.map((sw) => (
                         <Pressable
                             key={sw.name}
-                            style={[styles.swatch, activeItem === sw.name ? styles.swatchActive : null]}
+                            style={styles.swatch}
                             onPress={() => {
                                 setActiveItem(sw.name);
                                 if (UI_DEMO_ONLY || !UnityView) {
