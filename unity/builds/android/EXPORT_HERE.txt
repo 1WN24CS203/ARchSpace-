@@ -1,0 +1,12 @@
+Export your Unity project as an Android library to this folder.
+
+Expected structure after Unity export:
+- unity/builds/android/unityLibrary/
+- unity/builds/android/launcher/
+- unity/builds/android/build.gradle
+
+After export, remove the <intent-filter>...</intent-filter> from:
+- unity/builds/android/unityLibrary/src/main/AndroidManifest.xml
+
+Then run from RN root:
+- npx expo run:android
