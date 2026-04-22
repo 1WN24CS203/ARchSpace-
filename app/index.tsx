@@ -6,12 +6,9 @@ import { Colors } from '@/constants/colors';
 import { CustomButton } from '@/components/CustomButton';
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Resolve localhost based on emulator/platform for demo
+// Resolve to Windows computer's WiFi IP so physical devices on Expo Go can connect!
 const getApiBaseUrl = () => {
-    if (Platform.OS === 'android') {
-        return 'http://10.0.2.2:3000'; // Android emulator localhost
-    }
-    return 'http://localhost:3000'; // Web, iOS Simulator
+    return 'http://10.161.246.19:3000'; 
 };
 
 export default function LoginScreen() {
@@ -52,29 +49,69 @@ export default function LoginScreen() {
         }
     };
 
-    const handleSendOTP = () => {
+    const handleSendOTP = async () => {
         if (!email.includes('@')) {
             alert('Please enter a valid email address');
             return;
         }
         setLoading(true);
-        setTimeout(() => {
+
+        try {
+            const res = await fetch(`${getApiBaseUrl()}/api/auth/send-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+                alert(data.error || 'Failed to request OTP.');
+                setLoading(false);
+                return;
+            }
+
             setLoading(false);
             setAuthMode('otp');
-            alert('Verification code sent to your email. (Use 1234 for demo)');
-        }, 1500);
+            
+            if (data.demoModeCode) {
+                alert(`[DEMO MODE]: Verification code generated: ${data.demoModeCode}`);
+            } else {
+                alert(data.message);
+            }
+        } catch (error) {
+            setLoading(false);
+            alert('Cannot connect to the server database. Ensure the backend is running.');
+            console.error(error);
+        }
     };
 
-    const handleVerifyOTP = () => {
-        if (otp !== '1234') {
-            alert('Invalid OTP. Please try 1234');
+    const handleVerifyOTP = async () => {
+        if (!otp) {
+            alert('Please enter your OTP');
             return;
         }
         setLoading(true);
-        setTimeout(() => {
+        try {
+            const res = await fetch(`${getApiBaseUrl()}/api/auth/verify-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.error || 'Invalid OTP');
+                setLoading(false);
+                return;
+            }
+
             setLoading(false);
             router.replace('/(tabs)');
-        }, 1000);
+        } catch (error) {
+            setLoading(false);
+            alert('Cannot connect to the server database. Ensure the backend is running.');
+            console.error(error);
+        }
     };
 
     const handleGoogleLogin = () => {

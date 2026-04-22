@@ -6,12 +6,9 @@ import { Colors } from '@/constants/colors';
 import { CustomButton } from '@/components/CustomButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Resolve localhost based on emulator/platform for demo
+// Resolve to Windows computer's WiFi IP so physical devices on Expo Go can connect!
 const getApiBaseUrl = () => {
-    if (Platform.OS === 'android') {
-        return 'http://10.0.2.2:3000'; // Android emulator localhost
-    }
-    return 'http://localhost:3000'; // Web, iOS Simulator
+    return 'http://10.161.246.19:3000'; 
 };
 
 export default function SignupScreen() {
