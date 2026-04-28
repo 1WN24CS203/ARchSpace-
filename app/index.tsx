@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, ScrollView, Animated } from 'react-native';
-import { Text, TextInput, ActivityIndicator } from 'react-native-paper';
+import { Text, TextInput } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { CustomButton } from '@/components/CustomButton';
-import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 // Resolve to Windows computer's WiFi IP so physical devices on Expo Go can connect!
 const getApiBaseUrl = () => {
-    return 'http://10.161.246.19:3000'; 
+    return 'http://192.168.29.161:3000'; 
 };
 
 export default function LoginScreen() {
@@ -19,9 +19,33 @@ export default function LoginScreen() {
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Animated Popup State
+    const [popupVisible, setPopupVisible] = useState(false);
+    const [popupMessage, setPopupMessage] = useState('');
+    const [popupType, setPopupType] = useState<'error' | 'success'>('error');
+    const popupAnim = React.useRef(new Animated.Value(-150)).current;
+
+    const showPopup = (msg: string, type: 'error' | 'success' = 'error') => {
+        setPopupMessage(msg);
+        setPopupType(type);
+        setPopupVisible(true);
+        Animated.spring(popupAnim, {
+            toValue: 60,
+            useNativeDriver: true,
+            bounciness: 12
+        }).start();
+
+        setTimeout(() => {
+            Animated.timing(popupAnim, {
+                toValue: -150,
+                duration: 300,
+                useNativeDriver: true,
+            }).start(() => setPopupVisible(false));
+        }, 4000);
+    };
     const handlePasswordLogin = async () => {
         if (!email || !password) {
-            alert('Please enter both email and password.');
+            showPopup('Please enter both email and password.');
             return;
         }
         setLoading(true);
@@ -35,23 +59,24 @@ export default function LoginScreen() {
             const data = await res.json();
             
             if (!res.ok) {
-                alert(data.error || 'Authentication failed');
+                showPopup(data.error || 'Authentication failed');
                 setLoading(false);
                 return;
             }
             
             setLoading(false);
-            router.replace('/(tabs)');
+            showPopup('Login successful!', 'success');
+            setTimeout(() => router.replace('/(tabs)/dashboard' as any), 600);
         } catch (error) {
             setLoading(false);
-            alert('Cannot connect to the server database. Ensure the backend is running.');
+            showPopup('Cannot connect to the server database.');
             console.error(error);
         }
     };
 
     const handleSendOTP = async () => {
         if (!email.includes('@')) {
-            alert('Please enter a valid email address');
+            showPopup('Please enter a valid email address');
             return;
         }
         setLoading(true);
@@ -65,7 +90,7 @@ export default function LoginScreen() {
             const data = await res.json();
             
             if (!res.ok) {
-                alert(data.error || 'Failed to request OTP.');
+                showPopup(data.error || 'Failed to request OTP.');
                 setLoading(false);
                 return;
             }
@@ -74,20 +99,20 @@ export default function LoginScreen() {
             setAuthMode('otp');
             
             if (data.demoModeCode) {
-                alert(`[DEMO MODE]: Verification code generated: ${data.demoModeCode}`);
+                showPopup(`[DEMO MODE]: Verification code generated: ${data.demoModeCode}`, 'success');
             } else {
-                alert(data.message);
+                showPopup(data.message, 'success');
             }
         } catch (error) {
             setLoading(false);
-            alert('Cannot connect to the server database. Ensure the backend is running.');
+            showPopup('Cannot connect to the server database.');
             console.error(error);
         }
     };
 
     const handleVerifyOTP = async () => {
         if (!otp) {
-            alert('Please enter your OTP');
+            showPopup('Please enter your OTP');
             return;
         }
         setLoading(true);
@@ -100,26 +125,19 @@ export default function LoginScreen() {
             const data = await res.json();
 
             if (!res.ok) {
-                alert(data.error || 'Invalid OTP');
+                showPopup(data.error || 'Invalid OTP');
                 setLoading(false);
                 return;
             }
 
             setLoading(false);
-            router.replace('/(tabs)');
+            showPopup('Verified securely!', 'success');
+            setTimeout(() => router.replace('/(tabs)/dashboard' as any), 600);
         } catch (error) {
             setLoading(false);
-            alert('Cannot connect to the server database. Ensure the backend is running.');
+            showPopup('Cannot connect to the server database.');
             console.error(error);
         }
-    };
-
-    const handleGoogleLogin = () => {
-        setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            router.replace('/(tabs)');
-        }, 1500);
     };
 
     return (
@@ -127,6 +145,11 @@ export default function LoginScreen() {
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
+            {popupVisible && (
+                <Animated.View style={[styles.popup, { transform: [{ translateY: popupAnim }], backgroundColor: popupType === 'error' ? '#FF4C4C' : '#4CAF50' }]}>
+                    <Text style={styles.popupText}>{popupMessage}</Text>
+                </Animated.View>
+            )}
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                     <View style={styles.header}>
@@ -138,8 +161,8 @@ export default function LoginScreen() {
                     <View style={styles.formCard}>
                         {authMode === 'password' && (
                             <View style={styles.formMode}>
-                                <Text style={styles.formTitle}>Secure Portal</Text>
-                                <Text style={styles.formDescription}>Enter your credentials mapped to MongoDB</Text>
+                                <Text style={styles.formTitle}>Login</Text>
+                                <Text style={styles.formDescription}>Enter your credentials</Text>
                                 
                                 <TextInput
                                     label="Account Email"
@@ -203,18 +226,7 @@ export default function LoginScreen() {
                                     variant="solid"
                                 />
 
-                                <View style={styles.dividerContainer}>
-                                    <View style={styles.dividerLine} />
-                                    <Text style={styles.dividerText}>OR</Text>
-                                    <View style={styles.dividerLine} />
-                                </View>
 
-                                <CustomButton
-                                    title="Continue with Google"
-                                    onPress={handleGoogleLogin}
-                                    variant="outline"
-                                    icon={() => <AntDesign name="google" size={20} color={Colors.textMain} style={{marginRight: 8}} />}
-                                />
                                 
                                 <View style={styles.resendContainer}>
                                     <Text style={styles.footerText}>Prefer standard login? </Text>
@@ -249,7 +261,7 @@ export default function LoginScreen() {
                                 />
 
                                 <View style={styles.resendContainer}>
-                                    <Text style={styles.footerText}>Didn't receive code? </Text>
+                                    <Text style={styles.footerText}>Didn&apos;t receive code? </Text>
                                     <Text style={styles.signupText} onPress={() => setAuthMode('email')}>Change Email</Text>
                                 </View>
                             </View>
@@ -267,6 +279,28 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+    popup: {
+        position: 'absolute',
+        top: 60,
+        left: 20,
+        right: 20,
+        padding: 16,
+        paddingVertical: 18,
+        borderRadius: 8,
+        zIndex: 100,
+        elevation: 100,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+    },
+    popupText: {
+        color: '#FFF',
+        fontFamily: 'Lato-Bold',
+        fontSize: 14,
+        textAlign: 'center',
+    },
     container: { flex: 1, backgroundColor: Colors.primary },
     content: { flexGrow: 1, justifyContent: 'center', padding: 24 },
     header: { marginBottom: 40, alignItems: 'center' },

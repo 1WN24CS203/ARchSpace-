@@ -1,17 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View, Animated, Easing } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Colors } from '@/constants/colors';
-import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 
 type UnityMsg = {
     type?: 'budget' | 'category' | 'item' | 'items';
     budget?: number;
     category?: string;
     item?: string;
-    items?: Array<{ name: string; price: number; category: string }>;
+    items?: { name: string; price: number; category: string }[];
 };
 
 const CATEGORIES = ['Structure', 'Material', 'Furniture', 'Lighting'] as const;
@@ -23,7 +22,7 @@ type UnityViewRef = {
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 const UI_DEMO_ONLY = (__DEV__ && process.env.EXPO_PUBLIC_UI_DEMO_ONLY !== '0') || IS_EXPO_GO;
 
-const DEMO_ITEMS: Record<(typeof CATEGORIES)[number], Array<{ name: string; price: number; category: string }>> = {
+const DEMO_ITEMS: Record<(typeof CATEGORIES)[number], { name: string; price: number; category: string }[]> = {
     Structure: [
         { name: 'Wall Panel', price: 1800, category: 'Structure' },
         { name: 'Door Frame', price: 2200, category: 'Structure' },
@@ -50,54 +49,45 @@ export default function ARPreviewScreen() {
     const router = useRouter();
     const unityRef = useRef<UnityViewRef | null>(null);
 
-    const UnityView = useMemo(() => {
-        if (UI_DEMO_ONLY) return null;
-        try {
-            const mod = require('@azesmway/react-native-unity');
-            return mod?.default ?? mod;
-        } catch {
-            return null;
-        }
-    }, []);
+    const [UnityView, setUnityView] = useState<any>(null);
 
     const [budget, setBudget] = useState<number>(0);
     const [activeCategory, setActiveCategory] = useState<string>('Material');
     const [activeItem, setActiveItem] = useState<string>('');
-    const [items, setItems] = useState<Array<{ name: string; price: number; category: string }>>([]);
+    const [items, setItems] = useState<{ name: string; price: number; category: string }[]>([]);
 
     const swatches = useMemo(
         () => items.slice(0, 12),
         [items]
     );
 
-    // Animation values
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-
     useEffect(() => {
-        Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-            easing: Easing.out(Easing.ease)
-        }).start();
+        if (UI_DEMO_ONLY) return;
 
-        if (UI_DEMO_ONLY || !UnityView || Platform.OS === 'web') {
-            const demo = DEMO_ITEMS[activeCategory as (typeof CATEGORIES)[number]] ?? [];
-            setItems(demo);
-            setActiveItem(demo[0]?.name ?? '');
-            setBudget(45000);
-            return;
-        }
+        let cancelled = false;
+        import('@azesmway/react-native-unity')
+            .then((mod) => {
+                if (cancelled) return;
+                setUnityView(() => (mod as any)?.default ?? mod);
+            })
+            .catch(() => {
+                // Keep UnityView null; UI will render demo.
+            });
 
-        const ref = unityRef.current;
-        if (!ref) return;
-
-        ref.postMessage('RNBridge', 'EnableRNMode', '');
-        ref.postMessage('RNBridge', 'RequestState', '');
-        ref.postMessage('RNBridge', 'RequestItemsForCategory', activeCategory);
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => {
+        // Default budget in demo mode for UI testing.
+        if (UI_DEMO_ONLY || Platform.OS === 'web') {
+            setBudget(45000);
+        }
+    }, []);
+
+    useEffect(() => {
+        // Run mock data setup on web as well
         if (UI_DEMO_ONLY || !UnityView || Platform.OS === 'web') {
             const demo = DEMO_ITEMS[activeCategory as (typeof CATEGORIES)[number]] ?? [];
             setItems(demo);
@@ -107,7 +97,18 @@ export default function ARPreviewScreen() {
 
         unityRef.current?.postMessage('RNBridge', 'SetCategory', activeCategory);
         unityRef.current?.postMessage('RNBridge', 'RequestItemsForCategory', activeCategory);
-    }, [activeCategory]);
+    }, [UnityView, activeCategory]);
+
+    useEffect(() => {
+        if (UI_DEMO_ONLY || !UnityView || Platform.OS === 'web') return;
+
+        const ref = unityRef.current;
+        if (!ref) return;
+
+        // Ensure Unity disables any legacy UI and acts as AR engine only.
+        ref.postMessage('RNBridge', 'EnableRNMode', '');
+        ref.postMessage('RNBridge', 'RequestState', '');
+    }, [UnityView]);
 
     const onUnityMessage = (event: any) => {
         const raw = event?.nativeEvent?.message;
@@ -149,27 +150,23 @@ export default function ARPreviewScreen() {
                     onUnityMessage={onUnityMessage}
                 />
             ) : (
-                <View style={styles.unityPlaceholder}>
-                    <MaterialCommunityIcons name="augmented-reality" size={64} color={Colors.textMuted} opacity={0.5} />
-                    <Text style={styles.placeholderText}>AR Engine Offline (Demo Mode)</Text>
-                </View>
+                <View style={styles.unity} />
             )}
 
             {/* top HUD */}
             <View style={styles.topHud} pointerEvents="box-none">
                 <Pressable style={styles.iconBtn} onPress={() => router.back()}>
-                    <Feather name="chevron-left" size={24} color={Colors.textMain} />
+                    <Text style={styles.iconBtnText}>×</Text>
                 </Pressable>
 
                 <View style={styles.budgetPill}>
-                    <Text style={styles.budgetText}>Est. Cost</Text>
-                    <Text style={styles.budgetValue}>${budget.toFixed(0)}</Text>
+                    <Text style={styles.budgetText}>Budget</Text>
+                    <Text style={styles.budgetValue}>{budget.toFixed(0)}</Text>
                 </View>
             </View>
 
             {/* bottom sheet */}
-            <Animated.View style={[styles.sheet, { opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0,1], outputRange: [50, 0] }) }] }]}>
-                <View style={styles.sheetHandle} />
+            <View style={styles.sheet}>
                 <View style={styles.sheetHeader}>
                     <Text style={styles.sheetTitle}>{activeCategory.toUpperCase()}</Text>
                     <Pressable
@@ -182,11 +179,11 @@ export default function ARPreviewScreen() {
                             unityRef.current?.postMessage('RNBridge', 'Deselect', '');
                         }}
                     >
-                        <Feather name="x" size={18} color={Colors.textMain} />
+                        <Text style={styles.sheetCloseText}>×</Text>
                     </Pressable>
                 </View>
 
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+                <View style={styles.categoryRow}>
                     {CATEGORIES.map((c) => (
                         <Pressable
                             key={c}
@@ -198,13 +195,13 @@ export default function ARPreviewScreen() {
                             </Text>
                         </Pressable>
                     ))}
-                </ScrollView>
+                </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatchRow}>
                     {swatches.map((sw) => (
                         <Pressable
                             key={sw.name}
-                            style={styles.swatch}
+                            style={[styles.swatch, activeItem === sw.name ? styles.swatchActive : null]}
                             onPress={() => {
                                 setActiveItem(sw.name);
                                 if (UI_DEMO_ONLY || !UnityView) {
@@ -213,19 +210,13 @@ export default function ARPreviewScreen() {
                                 }
                                 unityRef.current?.postMessage('RNBridge', 'SetItem', sw.name);
                             }}
-                        >
-                            <View style={[styles.swatchInner, activeItem === sw.name ? styles.swatchInnerActive : null]}>
-                                <Text style={styles.swatchInitials}>{sw.name.slice(0,2).toUpperCase()}</Text>
-                            </View>
-                            <Text style={styles.swatchName} numberOfLines={1}>{sw.name}</Text>
-                            <Text style={styles.swatchPrice}>${sw.price}</Text>
-                        </Pressable>
+                        />
                     ))}
                 </ScrollView>
 
                 <View style={styles.actionsRow}>
                     <Pressable
-                        style={styles.sideAction}
+                        style={styles.smallAction}
                         onPress={() => {
                             if (UI_DEMO_ONLY || !UnityView) {
                                 setBudget((b) => b + 500);
@@ -234,21 +225,22 @@ export default function ARPreviewScreen() {
                             unityRef.current?.postMessage('RNBridge', 'Undo', '');
                         }}
                     >
-                        <Feather name="rotate-ccw" size={20} color={Colors.textMain} />
+                        <Text style={styles.smallActionText}>Undo</Text>
                     </Pressable>
 
                     <Pressable
                         style={styles.primaryAction}
                         onPress={() => {
+                            // Placement is tap-to-place inside Unity. Primary button acts like “confirm / reselect”.
                             if (UI_DEMO_ONLY || !UnityView) return;
                             unityRef.current?.postMessage('RNBridge', 'Ping', 'PrimaryAction');
                         }}
                     >
-                        <MaterialCommunityIcons name="plus" size={32} color="#111" />
+                        <Text style={styles.primaryActionText}>●</Text>
                     </Pressable>
 
                     <Pressable
-                        style={styles.sideAction}
+                        style={styles.smallAction}
                         onPress={() => {
                             if (UI_DEMO_ONLY || !UnityView) {
                                 setBudget(45000);
@@ -257,10 +249,10 @@ export default function ARPreviewScreen() {
                             unityRef.current?.postMessage('RNBridge', 'Clear', '');
                         }}
                     >
-                        <Feather name="trash-2" size={20} color={Colors.textMain} />
+                        <Text style={styles.smallActionText}>Clear</Text>
                     </Pressable>
                 </View>
-            </Animated.View>
+            </View>
         </View>
     );
 }
@@ -273,68 +265,45 @@ const styles = StyleSheet.create({
     unity: {
         flex: 1,
     },
-    unityPlaceholder: {
-        flex: 1,
-        backgroundColor: '#1a1a1a',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    placeholderText: {
-        color: Colors.textMuted,
-        fontFamily: 'Lato-Regular',
-        marginTop: 12,
-        fontSize: 16,
-    },
 
     topHud: {
         position: 'absolute',
-        left: 20,
-        right: 20,
-        top: 60,
+        left: 16,
+        right: 16,
+        top: 48,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
     iconBtn: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: 'rgba(20, 20, 20, 0.8)',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(0,0,0,0.45)',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
+    },
+    iconBtnText: {
+        color: Colors.textMain,
+        fontSize: 22,
+        lineHeight: 22,
     },
     budgetPill: {
         flexDirection: 'row',
-        gap: 8,
-        paddingHorizontal: 20,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: 'rgba(20, 20, 20, 0.8)',
+        gap: 10,
+        paddingHorizontal: 14,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(0,0,0,0.45)',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
     },
     budgetText: {
         color: Colors.textMuted,
-        fontSize: 12,
-        fontFamily: 'Lato-Bold',
-        letterSpacing: 0.5,
+        fontSize: 13,
     },
     budgetValue: {
-        color: Colors.accentGoldHover,
-        fontSize: 16,
-        fontFamily: 'PlayfairDisplay-Regular',
-        fontWeight: '700',
+        color: Colors.textMain,
+        fontSize: 15,
     },
 
     sheet: {
@@ -342,154 +311,105 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        paddingBottom: Platform.OS === 'ios' ? 34 : 24,
-        backgroundColor: 'rgba(15, 15, 15, 0.95)',
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -10 },
-        shadowOpacity: 0.5,
-        shadowRadius: 20,
-        elevation: 24,
-    },
-    sheetHandle: {
-        width: 40,
-        height: 4,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: 2,
-        alignSelf: 'center',
-        marginTop: 12,
-        marginBottom: 16,
+        paddingTop: 12,
+        paddingBottom: 18,
+        paddingHorizontal: 16,
+        backgroundColor: 'rgba(20,20,20,0.92)',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
     },
     sheetHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 24,
-        marginBottom: 12,
     },
     sheetTitle: {
         color: Colors.textMain,
-        fontSize: 18,
-        fontFamily: 'PlayfairDisplay-Regular',
-        letterSpacing: 1,
+        fontSize: 13,
+        letterSpacing: 1.2,
     },
     sheetClose: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255,255,255,0.08)',
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    sheetCloseText: {
+        color: Colors.textMain,
+        fontSize: 18,
+        lineHeight: 18,
     },
 
     categoryRow: {
-        paddingHorizontal: 20,
-        marginBottom: 12,
-        height: 50,
-        alignItems: 'center',
-        gap: 12,
+        flexDirection: 'row',
+        marginTop: 10,
+        gap: 10,
     },
     categoryChip: {
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        borderRadius: 24,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        borderWidth: 1,
-        borderColor: 'transparent',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.06)',
     },
     categoryChipActive: {
-        backgroundColor: 'rgba(212, 175, 55, 0.1)',
-        borderColor: 'rgba(212, 175, 55, 0.3)',
+        backgroundColor: 'rgba(212, 175, 55, 0.18)',
+        borderWidth: 1,
+        borderColor: 'rgba(212, 175, 55, 0.45)',
     },
     categoryChipText: {
         color: Colors.textMuted,
-        fontSize: 14,
-        fontFamily: 'Lato-Regular',
+        fontSize: 12,
     },
     categoryChipTextActive: {
-        color: Colors.accentGoldHover,
-        fontFamily: 'Lato-Bold',
+        color: Colors.textMain,
     },
 
     swatchRow: {
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-        gap: 16,
-        marginBottom: 20,
+        paddingVertical: 14,
+        gap: 10,
     },
     swatch: {
-        width: 80,
-        alignItems: 'center',
+        width: 42,
+        height: 42,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.14)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.12)',
     },
-    swatchInner: {
-        width: 72,
-        height: 72,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.03)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-    },
-    swatchInnerActive: {
-        borderColor: Colors.accentGoldHover,
-        backgroundColor: 'rgba(212, 175, 55, 0.08)',
-        shadowColor: Colors.accentGoldHover,
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-    },
-    swatchInitials: {
-        color: Colors.textMuted,
-        fontFamily: 'PlayfairDisplay-Regular',
-        fontSize: 24,
-        opacity: 0.8,
-    },
-    swatchName: {
-        color: Colors.textMain,
-        fontSize: 12,
-        fontFamily: 'Lato-Regular',
-        textAlign: 'center',
-        marginBottom: 2,
-    },
-    swatchPrice: {
-        color: Colors.textMuted,
-        fontSize: 11,
-        fontFamily: 'Lato-Regular',
+    swatchActive: {
+        borderColor: 'rgba(248, 213, 104, 0.95)',
     },
 
     actionsRow: {
         flexDirection: 'row',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 24,
-        gap: 32,
     },
-    sideAction: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+    smallAction: {
+        width: 72,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: 'rgba(255,255,255,0.06)',
         alignItems: 'center',
         justifyContent: 'center',
     },
+    smallActionText: {
+        color: Colors.textMain,
+        fontSize: 12,
+    },
     primaryAction: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: Colors.accentGold,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: 'rgba(248, 213, 104, 0.92)',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: Colors.accentGold,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
+    },
+    primaryActionText: {
+        color: '#111',
+        fontSize: 18,
+        marginTop: -2,
     },
 });

@@ -8,7 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 // Resolve to Windows computer's WiFi IP so physical devices on Expo Go can connect!
 const getApiBaseUrl = () => {
-    return 'http://10.161.246.19:3000'; 
+    return 'http://192.168.29.161:3000'; 
 };
 
 export default function SignupScreen() {
@@ -46,8 +46,8 @@ export default function SignupScreen() {
 
             setLoading(false);
             // Replace the entire navigation stack so the user can't go back to auth flow
-            router.replace('/(tabs)');
-        } catch (error) {
+            router.replace('/(tabs)/dashboard' as any);
+        } catch {
             setLoading(false);
             setErrorMsg('Cannot connect to the backend server. Is it running?');
         }

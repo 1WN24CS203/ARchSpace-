@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Card, Text, useTheme } from 'react-native-paper';
+import { Card, Text } from 'react-native-paper';
 import { Project } from '@/models/Project';
 import { Colors } from '@/constants/colors';
 
@@ -10,8 +10,6 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onPress }) => {
-    const theme = useTheme();
-
     return (
         <Card style={styles.card} onPress={onPress}>
             {project.image && <Card.Cover source={{ uri: project.image }} style={styles.cover} />}
