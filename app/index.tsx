@@ -5,11 +5,7 @@ import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { CustomButton } from '@/components/CustomButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-// Resolve to Windows computer's WiFi IP so physical devices on Expo Go can connect!
-const getApiBaseUrl = () => {
-    return 'http://192.168.29.161:3000'; 
-};
+import { getApiBaseUrl } from '@/services/apiBaseUrl';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -69,7 +65,7 @@ export default function LoginScreen() {
             setTimeout(() => router.replace('/(tabs)/dashboard' as any), 600);
         } catch (error) {
             setLoading(false);
-            showPopup('Cannot connect to the server database.');
+            showPopup(`Cannot connect to the server (${getApiBaseUrl()}).`);
             console.error(error);
         }
     };
@@ -105,7 +101,7 @@ export default function LoginScreen() {
             }
         } catch (error) {
             setLoading(false);
-            showPopup('Cannot connect to the server database.');
+            showPopup(`Cannot connect to the server (${getApiBaseUrl()}).`);
             console.error(error);
         }
     };
@@ -135,7 +131,7 @@ export default function LoginScreen() {
             setTimeout(() => router.replace('/(tabs)/dashboard' as any), 600);
         } catch (error) {
             setLoading(false);
-            showPopup('Cannot connect to the server database.');
+            showPopup(`Cannot connect to the server (${getApiBaseUrl()}).`);
             console.error(error);
         }
     };

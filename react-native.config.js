@@ -1,7 +1,9 @@
+// @ts-nocheck
+/* eslint-env node */
 const fs = require('fs');
 const path = require('path');
 
-const unityLibraryPath = path.join(__dirname, 'unity', 'builds', 'android', 'unityLibrary');
+const unityLibraryPath = path.join(process.cwd(), 'unity', 'builds', 'android', 'unityLibrary');
 const hasUnityExport = fs.existsSync(unityLibraryPath);
 
 module.exports = {

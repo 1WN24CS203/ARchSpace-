@@ -5,11 +5,17 @@ import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { CustomButton } from '@/components/CustomButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getApiBaseUrl } from '@/services/apiBaseUrl';
 
-// Resolve to Windows computer's WiFi IP so physical devices on Expo Go can connect!
-const getApiBaseUrl = () => {
-    return 'http://192.168.29.161:3000'; 
-};
+function validatePassword(passwordToCheck: string): string | null {
+    const passwordTrimmed = passwordToCheck ?? '';
+    if (passwordTrimmed.length < 8) return 'Password must be at least 8 characters.';
+    if (!/[a-z]/.test(passwordTrimmed)) return 'Password must include at least 1 lowercase letter.';
+    if (!/[A-Z]/.test(passwordTrimmed)) return 'Password must include at least 1 uppercase letter.';
+    if (!/[0-9]/.test(passwordTrimmed)) return 'Password must include at least 1 number.';
+    if (!/[^A-Za-z0-9]/.test(passwordTrimmed)) return 'Password must include at least 1 special character.';
+    return null;
+}
 
 export default function SignupScreen() {
     const router = useRouter();
@@ -25,6 +31,12 @@ export default function SignupScreen() {
         
         if (!email || !password || !workspaceKey) {
             setErrorMsg('Email, Password, and Workspace Key are required.');
+            return;
+        }
+
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+            setErrorMsg(passwordError);
             return;
         }
 
@@ -49,7 +61,7 @@ export default function SignupScreen() {
             router.replace('/(tabs)/dashboard' as any);
         } catch {
             setLoading(false);
-            setErrorMsg('Cannot connect to the backend server. Is it running?');
+            setErrorMsg(`Cannot connect to the backend server (${getApiBaseUrl()}).`);
         }
     };
 
@@ -103,6 +115,10 @@ export default function SignupScreen() {
                             theme={{ colors: { onSurfaceVariant: Colors.textMuted } }}
                             left={<TextInput.Icon icon="lock" color={Colors.textMuted} />}
                         />
+
+                        <Text style={styles.passwordHint}>
+                            Password: 8+ chars, upper + lower + number + symbol.
+                        </Text>
 
                         <TextInput
                             label="Company Invite Code"
@@ -187,6 +203,13 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderTopLeftRadius: 8,
         borderTopRightRadius: 8,
+    },
+    passwordHint: {
+        color: Colors.textMuted,
+        fontFamily: 'Lato-Regular',
+        fontSize: 12,
+        marginTop: -10,
+        marginBottom: 16,
     },
     keyInput: {
         backgroundColor: 'rgba(212, 175, 55, 0.05)',
