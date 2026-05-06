@@ -10,8 +10,16 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.archspace",
-      "requireFullScreen": true
+      "bundleIdentifier": "com.archspace.app",
+      "buildNumber": "1",
+      "requireFullScreen": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "ARchSpace uses your camera for AR furniture placement and profile photos.",
+        "NSPhotoLibraryUsageDescription": "ARchSpace accesses your photo library to set your profile picture and import design assets.",
+        "NSPhotoLibraryAddUsageDescription": "ARchSpace saves rendered designs to your photo library.",
+        "NSMicrophoneUsageDescription": "ARchSpace may access the microphone for AR session features.",
+        "UIBackgroundModes": ["fetch", "remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -47,6 +55,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "afbec39c-53c4-47fb-ba21-de2d957ee508"
+      }
     }
   }
 }
