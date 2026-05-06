@@ -42,12 +42,13 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="portfolio" options={{ href: null }} />
       <Tabs.Screen
-        name="portfolio"
+        name="my-projects"
         options={{
-          title: 'Portfolio',
+          title: 'My Projects',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="image-multiple" size={size} color={color} />
+            <MaterialCommunityIcons name="folder-multiple" size={size} color={color} />
           ),
         }}
       />
@@ -67,6 +68,25 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="calculator" size={size} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="account" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="logout"
+        options={{
+          title: 'Sign Out',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="logout-variant" size={size} color={color} />
+          ),
+          tabBarActiveTintColor: '#FF6B6B',
         }}
       />
     </Tabs>

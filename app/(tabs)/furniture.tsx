@@ -12,7 +12,7 @@ export default function FurnitureScreen() {
     const router = useRouter();
 
     const launchAR = () => {
-        router.push('/ar-preview');
+        router.push('/ar-preview' as any);
     };
 
     return (

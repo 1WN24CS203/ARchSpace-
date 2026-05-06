@@ -4,7 +4,7 @@ import { Colors } from '@/constants/colors';
 
 interface CustomButtonProps {
     title: string;
-    onPress: () => void;
+    onPress?: () => void | Promise<void>;
     style?: ViewStyle | ViewStyle[];
     textStyle?: TextStyle | TextStyle[];
     variant?: 'gold' | 'solid' | 'outline';

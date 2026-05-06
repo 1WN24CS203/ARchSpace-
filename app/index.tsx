@@ -5,10 +5,13 @@ import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { CustomButton } from '@/components/CustomButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { getApiBaseUrl } from '@/services/apiBaseUrl';
+import { getApiBaseUrl, fetchWithTimeout } from '@/services/apiBaseUrl';
+import { useAuth } from '@/context/AuthContext';
+import { getUserProfile } from '@/services/userStore';
 
 export default function LoginScreen() {
     const router = useRouter();
+    const { setUser } = useAuth();
     const [authMode, setAuthMode] = useState<'password' | 'email' | 'otp'>('password');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -47,10 +50,11 @@ export default function LoginScreen() {
         setLoading(true);
 
         try {
-            const res = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
+            const emailNormalized = String(email).trim().toLowerCase();
+            const res = await fetchWithTimeout(`${getApiBaseUrl()}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email: emailNormalized, password })
             });
             const data = await res.json();
             
@@ -59,6 +63,12 @@ export default function LoginScreen() {
                 setLoading(false);
                 return;
             }
+
+            const profile = await getUserProfile(emailNormalized);
+            await setUser({
+                email: emailNormalized,
+                displayName: profile?.displayName ?? data.user?.userName ?? emailNormalized.split('@')[0] ?? null,
+            });
             
             setLoading(false);
             showPopup('Login successful!', 'success');
@@ -78,10 +88,11 @@ export default function LoginScreen() {
         setLoading(true);
 
         try {
-            const res = await fetch(`${getApiBaseUrl()}/api/auth/send-otp`, {
+            const emailNormalized = String(email).trim().toLowerCase();
+            const res = await fetchWithTimeout(`${getApiBaseUrl()}/api/auth/send-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email: emailNormalized })
             });
             const data = await res.json();
             
@@ -113,10 +124,11 @@ export default function LoginScreen() {
         }
         setLoading(true);
         try {
-            const res = await fetch(`${getApiBaseUrl()}/api/auth/verify-otp`, {
+            const emailNormalized = String(email).trim().toLowerCase();
+            const res = await fetchWithTimeout(`${getApiBaseUrl()}/api/auth/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp })
+                body: JSON.stringify({ email: emailNormalized, otp })
             });
             const data = await res.json();
 
@@ -125,6 +137,12 @@ export default function LoginScreen() {
                 setLoading(false);
                 return;
             }
+
+            const profile = await getUserProfile(emailNormalized);
+            await setUser({
+                email: emailNormalized,
+                displayName: profile?.displayName ?? data.user?.userName ?? emailNormalized.split('@')[0] ?? null,
+            });
 
             setLoading(false);
             showPopup('Verified securely!', 'success');
@@ -139,7 +157,7 @@ export default function LoginScreen() {
     return (
         <KeyboardAvoidingView
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             {popupVisible && (
                 <Animated.View style={[styles.popup, { transform: [{ translateY: popupAnim }], backgroundColor: popupType === 'error' ? '#FF4C4C' : '#4CAF50' }]}>
@@ -147,7 +165,7 @@ export default function LoginScreen() {
                 </Animated.View>
             )}
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     <View style={styles.header}>
                         <MaterialCommunityIcons name="cube-scan" size={48} color={Colors.accentGold} style={styles.logoIcon} />
                         <Text variant="displaySmall" style={styles.title}>ARchSpace</Text>
@@ -187,7 +205,10 @@ export default function LoginScreen() {
 
                                 <CustomButton
                                     title={loading ? "Authenticating..." : "System Login"}
-                                    onPress={handlePasswordLogin}
+                                    onPress={() => {
+                                        if (loading) return;
+                                        void handlePasswordLogin();
+                                    }}
                                     variant="solid"
                                 />
 
@@ -218,7 +239,10 @@ export default function LoginScreen() {
 
                                 <CustomButton
                                     title={loading ? "Sending..." : "Send Verification Code"}
-                                    onPress={handleSendOTP}
+                                    onPress={() => {
+                                        if (loading) return;
+                                        void handleSendOTP();
+                                    }}
                                     variant="solid"
                                 />
 
@@ -252,7 +276,10 @@ export default function LoginScreen() {
 
                                 <CustomButton
                                     title={loading ? "Verifying..." : "Secure Login"}
-                                    onPress={handleVerifyOTP}
+                                    onPress={() => {
+                                        if (loading) return;
+                                        void handleVerifyOTP();
+                                    }}
                                     variant="solid"
                                 />
 
@@ -325,7 +352,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 8,
         fontSize: 16,
     },
-    otpInput: { textAlign: 'center', letterSpacing: 8 },
+    otpInput: { textAlign: 'left', letterSpacing: 8 },
     dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
     dividerLine: { flex: 1, height: 1, backgroundColor: Colors.borderSubtle },
     dividerText: { color: Colors.textMuted, paddingHorizontal: 16, fontFamily: 'Lato-Regular', fontSize: 12, letterSpacing: 1 },

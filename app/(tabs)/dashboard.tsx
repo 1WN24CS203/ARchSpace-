@@ -1,43 +1,132 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { Text, Surface } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { CustomButton } from '@/components/CustomButton';
+import { useAuth } from '@/context/AuthContext';
+import { getUserProjects } from '@/services/userStore';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DashboardScreen() {
 	const router = useRouter();
+	const { user } = useAuth();
+	const insets = useSafeAreaInsets();
+	const { width } = useWindowDimensions();
+	const [activeDesignsCount, setActiveDesignsCount] = useState(0);
+	const [projectsLoading, setProjectsLoading] = useState(false);
+
+	const isTablet = width >= 768;
+	const isCompact = width < 360;
+	const contentMaxWidth = isTablet ? 760 : undefined;
+	const horizontalPadding = isTablet ? 32 : isCompact ? 16 : 24;
+
+	const greetingName = useMemo(() => {
+		if (!user) return '';
+		return String(user.displayName ?? user.email).trim();
+	}, [user]);
+
+	useEffect(() => {
+		let cancelled = false;
+		async function load() {
+			if (!user?.email) {
+				setActiveDesignsCount(0);
+				return;
+			}
+
+			setProjectsLoading(true);
+			try {
+				const projects = await getUserProjects(user.email);
+				if (!cancelled) {
+					setActiveDesignsCount(projects.length);
+				}
+			} finally {
+				if (!cancelled) {
+					setProjectsLoading(false);
+				}
+			}
+		}
+
+		load();
+		return () => {
+			cancelled = true;
+		};
+	}, [user?.email]);
+
 
 	return (
-		<ScrollView style={styles.container}>
-			<View style={styles.header}>
+		<SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+			<ScrollView
+				style={styles.container}
+				contentContainerStyle={[
+					styles.scrollContent,
+					{ paddingBottom: 48 + insets.bottom },
+				]}
+				showsVerticalScrollIndicator={false}
+			>
+				<View
+					style={[
+						styles.content,
+						{
+							maxWidth: contentMaxWidth,
+							paddingHorizontal: horizontalPadding,
+						},
+					]}
+				>
+					<View style={styles.header}>
 				<Text variant="headlineMedium" style={styles.greeting}>
-					Welcome back,
+					Welcome back{greetingName ? `, ${greetingName}` : ''}
 				</Text>
 				<Text variant="titleMedium" style={styles.subtitle}>
 					Here is your workspace overview
 				</Text>
-			</View>
+					</View>
 
-			<View style={styles.statsContainer}>
+					<View style={styles.statsContainer}>
 				<Surface style={styles.statCard} elevation={2}>
 					<Text variant="displaySmall" style={styles.statNumber}>
-						12
+						{projectsLoading ? '…' : activeDesignsCount}
 					</Text>
 					<Text variant="labelMedium" style={styles.statLabel}>
 						Active Designs
 					</Text>
 				</Surface>
-			</View>
+					</View>
 
-			<View style={styles.section}>
+					<View style={styles.section}>
 				<Text variant="titleLarge" style={styles.sectionTitle}>
 					Quick Actions
 				</Text>
 
 				<Surface style={styles.actionCard} elevation={1}>
 					<View style={styles.actionRow}>
-						<View>
+						<View style={styles.actionTextContainer}>
+							<Text variant="titleMedium" style={styles.actionTitle}>
+								Create New Project
+							</Text>
+							<Text variant="bodySmall" style={styles.actionSubtitle}>
+								Define AR params, budget & more
+							</Text>
+						</View>
+						<CustomButton
+							title="New Project"
+							onPress={() => router.push('/new-project' as any)}
+							variant="gold"
+							style={[
+								styles.actionButton,
+								{
+									minWidth: isCompact ? 96 : isTablet ? 160 : 120,
+									paddingHorizontal: isCompact ? 12 : 16,
+									paddingVertical: isCompact ? 8 : 10,
+								},
+							]}
+						/>
+					</View>
+				</Surface>
+
+				<Surface style={styles.actionCard} elevation={1}>
+					<View style={styles.actionRow}>
+						<View style={styles.actionTextContainer}>
 							<Text variant="titleMedium" style={styles.actionTitle}>
 								Start New AR Scan
 							</Text>
@@ -45,13 +134,25 @@ export default function DashboardScreen() {
 								Visualize room templates
 							</Text>
 						</View>
-						<CustomButton title="Scan Room" onPress={() => router.push('/ar-preview' as any)} variant="gold" />
+						<CustomButton 
+							title="Scan Room" 
+							onPress={() => router.push('/ar-preview' as any)} 
+							variant="gold" 
+							style={[
+								styles.actionButton,
+								{
+									minWidth: isCompact ? 96 : isTablet ? 160 : 120,
+									paddingHorizontal: isCompact ? 12 : 16,
+									paddingVertical: isCompact ? 8 : 10,
+								},
+							]}
+						/>
 					</View>
 				</Surface>
 
 				<Surface style={styles.actionCard} elevation={1}>
 					<View style={styles.actionRow}>
-						<View>
+						<View style={styles.actionTextContainer}>
 							<Text variant="titleMedium" style={styles.actionTitle}>
 								Calculate Budget
 							</Text>
@@ -59,22 +160,46 @@ export default function DashboardScreen() {
 								Estimate material splits
 							</Text>
 						</View>
-						<CustomButton title="Open Tool" onPress={() => router.push('/(tabs)/budget')} variant="solid" />
+						<CustomButton 
+							title="Open Tool" 
+							onPress={() => router.push('/(tabs)/budget')} 
+							variant="solid" 
+							style={[
+								styles.actionButton,
+								{
+									minWidth: isCompact ? 96 : isTablet ? 160 : 120,
+									paddingHorizontal: isCompact ? 12 : 16,
+									paddingVertical: isCompact ? 8 : 10,
+								},
+							]}
+						/>
 					</View>
 				</Surface>
-			</View>
-		</ScrollView>
+					</View>
+				</View>
+			</ScrollView>
+		</SafeAreaView>
 	);
 }
 
 const styles = StyleSheet.create({
+	safeArea: {
+		flex: 1,
+		backgroundColor: Colors.primary,
+	},
 	container: {
 		flex: 1,
 		backgroundColor: Colors.primary,
 	},
+	scrollContent: {
+		flexGrow: 1,
+	},
+	content: {
+		width: '100%',
+		alignSelf: 'center',
+	},
 	header: {
-		padding: 24,
-		paddingTop: 32,
+		paddingTop: 16,
 		paddingBottom: 16,
 	},
 	greeting: {
@@ -88,14 +213,14 @@ const styles = StyleSheet.create({
 	},
 	statsContainer: {
 		flexDirection: 'row',
-		padding: 16,
+		paddingVertical: 8,
 		justifyContent: 'space-between',
 	},
 	statCard: {
 		flex: 1,
 		backgroundColor: Colors.card,
 		padding: 20,
-		marginHorizontal: 8,
+		marginHorizontal: 0,
 		borderRadius: 12,
 		alignItems: 'center',
 		borderWidth: 1,
@@ -117,8 +242,7 @@ const styles = StyleSheet.create({
 		letterSpacing: 1,
 	},
 	section: {
-		padding: 24,
-		paddingBottom: 80,
+		paddingTop: 24,
 	},
 	sectionTitle: {
 		color: Colors.textMain,
@@ -137,6 +261,12 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
+		flexWrap: 'wrap',
+	},
+	actionTextContainer: {
+		flex: 1,
+		marginRight: 16,
+		minWidth: 180,
 	},
 	actionTitle: {
 		color: Colors.textMain,
@@ -146,5 +276,8 @@ const styles = StyleSheet.create({
 	actionSubtitle: {
 		color: Colors.textMuted,
 		fontFamily: 'Lato-Regular',
+	},
+	actionButton: {
+		alignSelf: 'flex-start',
 	},
 });

@@ -5,7 +5,9 @@ import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { CustomButton } from '@/components/CustomButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { getApiBaseUrl } from '@/services/apiBaseUrl';
+import { getApiBaseUrl, fetchWithTimeout } from '@/services/apiBaseUrl';
+import { useAuth } from '@/context/AuthContext';
+import { setUserProfile } from '@/services/userStore';
 
 function validatePassword(passwordToCheck: string): string | null {
     const passwordTrimmed = passwordToCheck ?? '';
@@ -19,6 +21,7 @@ function validatePassword(passwordToCheck: string): string | null {
 
 export default function SignupScreen() {
     const router = useRouter();
+    const { setUser } = useAuth();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -43,10 +46,13 @@ export default function SignupScreen() {
         setLoading(true);
 
         try {
-            const res = await fetch(`${getApiBaseUrl()}/api/auth/register`, {
+            const emailNormalized = String(email).trim().toLowerCase();
+            const displayName = String(name).trim() || emailNormalized.split('@')[0] || null;
+
+            const res = await fetchWithTimeout(`${getApiBaseUrl()}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, companyCode: workspaceKey.toUpperCase() })
+                body: JSON.stringify({ email: emailNormalized, password, companyCode: workspaceKey.toUpperCase(), userName: name })
             });
             const data = await res.json();
 
@@ -56,6 +62,8 @@ export default function SignupScreen() {
                 return;
             }
 
+            await setUserProfile(emailNormalized, { displayName: data.user?.userName || displayName });
+            await setUser({ email: emailNormalized, displayName: data.user?.userName || displayName });
             setLoading(false);
             // Replace the entire navigation stack so the user can't go back to auth flow
             router.replace('/(tabs)/dashboard' as any);
@@ -68,10 +76,10 @@ export default function SignupScreen() {
     return (
         <KeyboardAvoidingView
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     <View style={styles.header}>
                         <MaterialCommunityIcons name="cube-scan" size={48} color={Colors.accentGold} style={styles.logoIcon} />
                         <Text variant="displaySmall" style={styles.title}>Join ARchSpace</Text>
@@ -136,8 +144,8 @@ export default function SignupScreen() {
 
                         <View style={styles.buttonContainer}>
                             <CustomButton
-                                title={loading ? "Creating MongoDB Record..." : "Create Account"}
-                                onPress={handleSignup}
+                                title={loading ? "Creating Account..." : "Create Account"}
+                                onPress={loading ? undefined : handleSignup}
                                 variant="solid"
                                 style={styles.signupButton}
                             />
