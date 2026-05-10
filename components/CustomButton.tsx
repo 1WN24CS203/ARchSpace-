@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, Text, ViewStyle, TextStyle, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, Text, ViewStyle, TextStyle, View, ActivityIndicator } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Colors } from '@/constants/colors';
 
 interface CustomButtonProps {
@@ -9,6 +10,8 @@ interface CustomButtonProps {
     textStyle?: TextStyle | TextStyle[];
     variant?: 'gold' | 'solid' | 'outline';
     icon?: () => React.ReactNode;
+    loading?: boolean;
+    disabled?: boolean;
 }
 
 export const CustomButton: React.FC<CustomButtonProps> = ({
@@ -17,12 +20,23 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
     style,
     textStyle,
     variant = 'gold',
-    icon
+    icon,
+    loading = false,
+    disabled = false
 }) => {
     const isSolid = variant === 'solid';
     const isOutline = variant === 'outline';
 
+    const handlePress = () => {
+        if (loading || disabled) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (onPress) {
+            onPress();
+        }
+    };
+
     const renderIcon = () => {
+        if (loading) return null;
         if (!icon) return null;
         return icon();
     };
@@ -32,13 +46,23 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
             style={[
                 styles.button,
                 isSolid ? styles.solidButton : isOutline ? styles.outlineButton : styles.ghostButton,
+                (disabled || loading) && styles.disabledButton,
                 style
             ]}
-            onPress={onPress}
+            onPress={handlePress}
             activeOpacity={0.7}
+            disabled={disabled || loading}
         >
             <View style={styles.internalContainer}>
-                {renderIcon()}
+                {loading ? (
+                    <ActivityIndicator 
+                        size="small" 
+                        color={isSolid ? Colors.primary : Colors.accentGold} 
+                        style={styles.loader} 
+                    />
+                ) : (
+                    renderIcon()
+                )}
                 <Text
                     style={[
                         styles.text,
@@ -46,7 +70,7 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
                         textStyle
                     ]}
                 >
-                    {title}
+                    {loading ? 'Processing...' : title}
                 </Text>
             </View>
         </TouchableOpacity>
@@ -57,9 +81,10 @@ const styles = StyleSheet.create({
     button: {
         paddingVertical: 14,
         paddingHorizontal: 28,
-        borderRadius: 4,
+        borderRadius: 8, // Increased for a more modern look
         alignItems: 'center',
         justifyContent: 'center',
+        minHeight: 52, // Consistent height
     },
     internalContainer: {
         flexDirection: 'row',
@@ -68,7 +93,7 @@ const styles = StyleSheet.create({
     },
     ghostButton: {
         backgroundColor: 'transparent',
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: Colors.accentGold,
     },
     solidButton: {
@@ -76,21 +101,26 @@ const styles = StyleSheet.create({
     },
     outlineButton: {
         backgroundColor: 'transparent',
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: Colors.borderSubtle,
-        borderRadius: 8,
+    },
+    disabledButton: {
+        opacity: 0.6,
+    },
+    loader: {
+        marginRight: 10,
     },
     text: {
         fontFamily: 'Lato-Bold',
         fontSize: 14,
-        letterSpacing: 2,
+        letterSpacing: 1.5,
         textTransform: 'uppercase',
     },
     ghostText: {
         color: Colors.accentGold,
     },
     solidText: {
-        color: Colors.primary, // Black text on gold background
+        color: Colors.primary,
     },
     outlineText: {
         color: Colors.textMain,

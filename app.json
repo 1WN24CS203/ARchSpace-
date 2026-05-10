@@ -2,12 +2,13 @@
   "expo": {
     "name": "ARchSpace",
     "slug": "ARchSpace",
-    "version": "1.0.0",
-    "orientation": "default",
+    "version": "1.0.1",
+    "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "archspace",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
+    "jsEngine": "hermes",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.archspace.app",
@@ -18,7 +19,10 @@
         "NSPhotoLibraryUsageDescription": "ARchSpace accesses your photo library to set your profile picture and import design assets.",
         "NSPhotoLibraryAddUsageDescription": "ARchSpace saves rendered designs to your photo library.",
         "NSMicrophoneUsageDescription": "ARchSpace may access the microphone for AR session features.",
-        "UIBackgroundModes": ["fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -31,7 +35,13 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "usesCleartextTraffic": true,
-      "package": "com.anonymous.ARchSpace"
+      "package": "com.archspace.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -50,7 +60,11 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image-picker",
+      "expo-document-picker",
+      "./scripts/withUnity.js"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -59,7 +73,9 @@
     "extra": {
       "eas": {
         "projectId": "afbec39c-53c4-47fb-ba21-de2d957ee508"
-      }
+      },
+      "router": {}
     }
   }
 }
+

@@ -9,12 +9,13 @@
       "distribution": "internal",
       "environment": "development",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleDebug"
+        "buildType": "apk"
       },
       "ios": {
-        "buildConfiguration": "Debug",
-        "simulator": false
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://a-rch-space-backend.vercel.app"
       }
     },
     "preview": {
@@ -24,8 +25,10 @@
         "buildType": "apk"
       },
       "ios": {
-        "buildConfiguration": "Release",
         "distribution": "internal"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://a-rch-space-backend.vercel.app"
       }
     },
     "production": {
@@ -35,6 +38,9 @@
       },
       "ios": {
         "buildConfiguration": "Release"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://a-rch-space-backend.vercel.app"
       }
     }
   },
@@ -52,3 +58,4 @@
     }
   }
 }
+

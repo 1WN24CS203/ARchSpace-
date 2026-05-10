@@ -204,11 +204,9 @@ export default function LoginScreen() {
                                 />
 
                                 <CustomButton
-                                    title={loading ? "Authenticating..." : "System Login"}
-                                    onPress={() => {
-                                        if (loading) return;
-                                        void handlePasswordLogin();
-                                    }}
+                                    title="System Login"
+                                    loading={loading}
+                                    onPress={() => void handlePasswordLogin()}
                                     variant="solid"
                                 />
 
@@ -238,11 +236,9 @@ export default function LoginScreen() {
                                 />
 
                                 <CustomButton
-                                    title={loading ? "Sending..." : "Send Verification Code"}
-                                    onPress={() => {
-                                        if (loading) return;
-                                        void handleSendOTP();
-                                    }}
+                                    title="Send Verification Code"
+                                    loading={loading}
+                                    onPress={() => void handleSendOTP()}
                                     variant="solid"
                                 />
 
@@ -275,11 +271,9 @@ export default function LoginScreen() {
                                 />
 
                                 <CustomButton
-                                    title={loading ? "Verifying..." : "Secure Login"}
-                                    onPress={() => {
-                                        if (loading) return;
-                                        void handleVerifyOTP();
-                                    }}
+                                    title="Secure Login"
+                                    loading={loading}
+                                    onPress={() => void handleVerifyOTP()}
                                     variant="solid"
                                 />
 
