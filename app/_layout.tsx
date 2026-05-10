@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { PaperProvider } from 'react-native-paper';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   useFonts as usePlayfairFonts,
   PlayfairDisplay_400Regular,
@@ -28,13 +28,18 @@ export const unstable_settings = {
 };
 
 // ── Inner layout — has access to AuthContext ─────────────────────────────────
-function InnerLayout() {
+function InnerLayout({ fontsReady }: { fontsReady: boolean }) {
   const router = useRouter();
   const segments = useSegments();
   const { user, isHydrating } = useAuth();
+  const navigationInitialized = useRef(false);
 
   useEffect(() => {
-    if (isHydrating) return;
+    if (isHydrating || !fontsReady) return;
+
+    // Only run once after hydration is complete
+    if (navigationInitialized.current) return;
+    navigationInitialized.current = true;
 
     const firstSegment = segments[0] ? String(segments[0]) : '';
     const inAuthGroup = firstSegment === '(tabs)';
@@ -46,7 +51,17 @@ function InnerLayout() {
       // Logged in but on login screen — go to dashboard
       router.replace('/(tabs)/dashboard' as any);
     }
-  }, [user, isHydrating, segments, router]);
+  }, [user, isHydrating, segments, router, fontsReady]);
+
+  useEffect(() => {
+    if (!isHydrating && fontsReady) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isHydrating, fontsReady]);
+
+  if (isHydrating || !fontsReady) {
+    return null; // Keep showing splash screen
+  }
 
   const navTheme = {
     ...DefaultTheme,
@@ -94,10 +109,9 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    // Fonts loaded or errored — either way hide the splash
+    // Fonts loaded or errored
     if ((playfairLoaded || playfairError) && (latoLoaded || latoError)) {
       setFontsReady(true);
-      SplashScreen.hideAsync().catch(() => {});
     }
   }, [playfairLoaded, playfairError, latoLoaded, latoError]);
 
@@ -105,18 +119,15 @@ export default function RootLayout() {
   useEffect(() => {
     const t = setTimeout(() => {
       setFontsReady(true);
-      SplashScreen.hideAsync().catch(() => {});
     }, 5000);
     return () => clearTimeout(t);
   }, []);
-
-  if (!fontsReady) return null;
 
   return (
     <SafeAreaProvider>
       <AuthProvider>
         <PaperProvider theme={theme}>
-          <InnerLayout />
+          <InnerLayout fontsReady={fontsReady} />
         </PaperProvider>
       </AuthProvider>
     </SafeAreaProvider>
